@@ -19,8 +19,14 @@
     "ios": {
       "supportsTablet": true
     },
+    "android": {
+      "package": "com.ky.intrinsik_demo",
+      "versionCode": 1
+    },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "facebookAppId": "578029096208126",
+    "facebookDisplayName": "intrinsik-demo-ky"
   }
 }
