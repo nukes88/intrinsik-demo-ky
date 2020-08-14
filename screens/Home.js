@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import {
-    View, Text, Button, StyleSheet, Alert, SafeAreaView, ActivityIndicator
+    View, Text, Button, StyleSheet, Alert, SafeAreaView, ActivityIndicator, Easing, Animated, InteractionManager
 } from 'react-native';
 import UserContainer from '../containers/UserContainer';
-import { mainStyle, weatherApiURL, weatherApiKey } from '../config';
+import { mainStyle, weatherApiURL, weatherApiKey } from '../Config';
 import TopDashboard from '../components/TopDashboard';
-import { getDateFormatStr } from '../components/Dates';
+import { getDateFormatStr } from '../Functions';
 import { parseFetch } from '../components/Fetcher';
-import FutureWeatherList from '../components/FutureWeatherList';
+import WeatherList from '../components/WeatherList';
+import WeatherContainer from '../containers/WeatherContainer';
+import FutureDayWeatherItem from '../components/FutureDayWeatherItem';
 
 
 function Home({ navigation }) {
 
     const User = UserContainer.useContainer();
+    const Weather = WeatherContainer.useContainer();
 
     const malaysianCities = [
         'Kuala Lumpur',
@@ -67,7 +70,7 @@ function Home({ navigation }) {
     useEffect(() => {
         if (weatherData) {
             let d = weatherData;
-            console.log(d)
+            // console.log(d)
             setSelectedCity(d.name);
             let dtStr = getDateFormatStr(new Date((d.dt) * 1000));
             setSelectedDate(dtStr)
@@ -95,10 +98,21 @@ function Home({ navigation }) {
         setLoadingList(true);
         try {
             let fetchStr = `${weatherApiURL}onecall?lat=${selectedCityLat}&lon=${selectedCityLong}&appid=${weatherApiKey}&units=metric`;
-            console.log(fetchStr);
+            // console.log(fetchStr);
             let weatherData = await parseFetch(fetchStr);
-            console.log('future weather', weatherData.daily);
             setFutureWeatherData(weatherData.daily);
+
+            let summarisedList = weatherData.daily.map(d => {
+                let dtStr = getDateFormatStr(new Date((d.dt) * 1000));
+                return {
+                    dateStr: dtStr,
+                    minTemp: d.temp.min,
+                    maxTemp: d.temp.max,
+                    forecast: d.weather[0].main
+                }
+            })
+            // let withoutToday = summarisedList.filter(d => d.dateStr !== selectedDate)
+            setFutureWeatherList(summarisedList);
         } catch (e) {
             Alert.alert(
                 'Get future weather error!',
@@ -115,46 +129,120 @@ function Home({ navigation }) {
         }
     }, [selectedCityLat, selectedCityLong])
 
-    useEffect(() => {
-        if (futureWeatherData) {
-            let summarisedList = futureWeatherData.map(d => {
-                let dtStr = getDateFormatStr(new Date((d.dt) * 1000));
+    // cant find specific day API
+    // closest is this
+    // 5 days 3 hourly
+    async function getDayWeather(tappedDayDateStr) {
+        try {
+            let fetchStr = `${weatherApiURL}forecast?lat=${selectedCityLat}&lon=${selectedCityLong}&appid=${weatherApiKey}&units=metric`;
+            let weatherData = await parseFetch(fetchStr);
+            // console.log(weatherData.list);
+            let summarisedList = weatherData.list.map(d => {
+                let dtStr = getDateFormatStr(new Date((d.dt) * 1000))
                 return {
                     dateStr: dtStr,
-                    minTemp: d.temp.min,
-                    maxTemp: d.temp.max,
-                    forecast: d.weather[0].main
+                    hour: parseInt(d.dt_txt.split(' ')[1].split(':')[0], 10),
+                    minTemp: Math.ceil(d.main.temp_min),
+                    maxTemp: Math.ceil(d.main.temp_max),
+                    forecast: d.weather[0].main,
+                    temp: d.main.temp,
+                    weatherIcon: d.weather[0].icon
                 }
             })
-            let withoutToday = summarisedList.filter(d => d.dateStr !== selectedDate)
-            setFutureWeatherList(withoutToday);
-        }
-    }, [futureWeatherData])
 
-    function seeDayWeather() {
-        navigation.navigate('DayWeather')
-        // console.log('niama')
+            let dayWeatherList = summarisedList.filter(d => d.dateStr == tappedDayDateStr).sort((a, b) => a.hour - b.hour);
+            if (dayWeatherList.length > 0) {
+                Weather.setDayWeather(dayWeatherList);
+                Weather.setDayCity(selectedCity);
+                Weather.setDayDate(tappedDayDateStr);
+                Weather.setDayTemperature(dayWeatherList[0].temp)
+                Weather.setDayForecast(dayWeatherList[0].forecast)
+                Weather.setDayIcon(dayWeatherList[0].weatherIcon)
+                return true;
+            } else {
+                return false;
+            }
+        } catch (e) {
+            console.error(e);
+        }
     }
+
+    let oneSecOpacity = new Animated.Value(0);
+    let listOpacity = new Animated.Value(1);
+
+    function seeDayWeather(tappedDayDateStr) {
+        animate();
+        InteractionManager.runAfterInteractions(async () => {
+            if (await getDayWeather(tappedDayDateStr) === true) {
+                navigation.navigate('DayWeather');
+            } else {
+                animateReset();
+                Alert.alert(
+                    'No Data!',
+                    'No weather data for ' + tappedDayDateStr
+                )
+            }
+        })
+
+    }
+
+    function animate() {
+        animateReset();
+        Animated.timing(oneSecOpacity, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: true
+        }).start();
+        Animated.timing(listOpacity, {
+            toValue: 0,
+            duration: 500,
+            useNativeDriver: true
+        }).start();
+    }
+
+    function animateReset() {
+        oneSecOpacity.setValue(0)
+        listOpacity.setValue(1)
+    }
+
+    useEffect(() => {
+        navigation.addListener('blur', () => {
+            animateReset()
+        })
+
+        return () => {
+            navigation.removeListener('blur', () => {
+                animateReset()
+            })
+        }
+    }, [navigation])
 
     return (
         <SafeAreaView style={[mainStyle.bg, styles.container]}>
-            {
-                loadingDashboard ? <ActivityIndicator size="large" /> :
-                    <TopDashboard
-                        city={selectedCity}
-                        todayDate={selectedDate}
-                        temperature={selectedTemperature}
-                        forecast={selectedForecast}
-                        screen="main"
-                    />
-            }
-            {
-                loadingList ? <ActivityIndicator size="large" /> :
-                    <FutureWeatherList
-                        data={futureWeatherList}
-                        itemPressed={seeDayWeather}
-                    />
-            }
+            <Animated.View style={[styles.animated, { opacity: oneSecOpacity }]}>
+                <Text style={[mainStyle.textColor, styles.animatedText]}>One sec ...</Text>
+            </Animated.View>
+            <Animated.View style={[mainStyle.bg, styles.main, { opacity: listOpacity }]}>
+                {
+                    loadingDashboard ? <ActivityIndicator size="large" /> :
+                        <TopDashboard
+                            city={selectedCity}
+                            todayDate={selectedDate}
+                            temperature={selectedTemperature}
+                            forecast={selectedForecast}
+                            screen="main"
+                        />
+                }
+                {
+                    loadingList ? <ActivityIndicator size="large" /> :
+                        <WeatherList
+                            data={futureWeatherList}
+                            itemPressed={seeDayWeather}
+                            header="The Future"
+                            listItem={FutureDayWeatherItem}
+                        />
+                }
+            </Animated.View>
         </SafeAreaView>
     )
 }
@@ -166,5 +254,21 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center'
+    },
+    main: {
+        flex: 1,
+        width: '100%',
+    },
+    animatedText: {
+        fontSize: 30
+    },
+    animated: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        position: 'absolute',
+        backgroundColor: 'white',
+        height: '100%',
+        width: '100%'
     }
 })

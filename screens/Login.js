@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Button, Alert, StyleSheet, SafeAreaView, TextInput } from 'react-native';
+import { View, Text, Button, Alert, StyleSheet, SafeAreaView, TextInput, ActivityIndicator } from 'react-native';
 
 import * as Facebook from 'expo-facebook';
 import UserContainer from '../containers/UserContainer';
-import { facebookAppId, mainStyle } from '../config';
+import { facebookAppId, mainStyle } from '../Config';
 import HeaderText from '../components/HeaderText';
 
 function Login() {
@@ -11,12 +11,13 @@ function Login() {
     let [error, setError] = useState();
     let [allGood, setAllGood] = useState(false);
     let [username, setUsername] = useState('');
-    let [isChecking, setIsChecking] = useState(false);
+    let [loading, setLoading] = useState(false);
 
     const User = UserContainer.useContainer();
 
     async function facebookLogin() {
         try {
+            setLoading(true)
             setError(null);
             await Facebook.initializeAsync(facebookAppId);
             const {
@@ -43,6 +44,8 @@ function Login() {
             }
         } catch ({ message }) {
             setError(`Facebook Login Error: ${message}`)
+        } finally {
+            setLoading(false);
         }
     }
 
@@ -88,15 +91,19 @@ function Login() {
                         value={username}
                     />
                 </View>
-                <Button
-                    onPress={normalLogin}
-                    title="Normal Login"
-                />
+                {
+                    loading ? <ActivityIndicator size="large" /> : <Button
+                        onPress={normalLogin}
+                        title="Normal Login"
+                    />
+                }
             </View>
-            <Button
-                onPress={facebookLogin}
-                title="Facebook Login"
-            />
+            {
+                loading ? <ActivityIndicator size="large" /> : <Button
+                    onPress={facebookLogin}
+                    title="Facebook Login"
+                />
+            }
         </SafeAreaView>
     )
 }

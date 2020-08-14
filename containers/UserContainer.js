@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createContainer } from 'unstated-next';
-import { appPrefix } from '../config';
+import { appPrefix } from '../Config';
 import AsyncStorage from '@react-native-community/async-storage';
 
 function useUser() {

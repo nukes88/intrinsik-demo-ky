@@ -8,12 +8,15 @@ import Home from './screens/Home';
 import Login from './screens/Login';
 import NavHeader from './components/NavHeader';
 import DayWeather from './screens/DayWeather';
+import WeatherContainer from './containers/WeatherContainer';
 
 
 function AppWithContainer() {
 	return (
 		<UserContainer.Provider>
-			<App />
+			<WeatherContainer.Provider>
+				<App />
+			</WeatherContainer.Provider>
 		</UserContainer.Provider>
 	)
 }
@@ -41,7 +44,7 @@ function App() {
 				{
 					User.isLoggedIn ? <>
 						<Stack.Screen name="Home" component={Home} />
-						<Stack.Screen name="DayWeather" component={DayWeather} />
+						<Stack.Screen name="DayWeather" component={DayWeather} options={{ title: '' }} />
 					</> : <>
 							<Stack.Screen name="Login" component={Login} />
 						</>

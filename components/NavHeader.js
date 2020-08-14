@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, Button, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import UserContainer from '../containers/UserContainer';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 
 
@@ -19,10 +20,13 @@ function NavHeader(props) {
             </Text>
             {
                 props.isLoggedIn ?
-                    <Button
+                    <TouchableOpacity
+                        style={styles.button}
                         onPress={logOut}
-                        title="Logout"
-                    /> : null
+                    >
+                        <MaterialCommunityIcons name="logout" size={24} color="black" />
+                        <Text style={styles.buttonText}>Logout</Text>
+                    </TouchableOpacity> : null
             }
         </View>
     )
@@ -38,6 +42,12 @@ const styles = StyleSheet.create({
     },
     text: {
         fontSize: 20,
+        fontWeight: 'bold'
+    },
+    button: {
+        flexDirection: 'row'
+    },
+    buttonText: {
         fontWeight: 'bold'
     }
 })

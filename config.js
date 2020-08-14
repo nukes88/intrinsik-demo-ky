@@ -14,6 +14,10 @@ export const mainStyle = StyleSheet.create({
     },
     textColor: {
         color: 'grey'
+    },
+    icon: {
+        backgroundColor: 'grey',
+        borderRadius: 100
     }
 })
 
@@ -28,4 +32,5 @@ export const facebookAppId = '578029096208126';
  */
 export const weatherApiURL = "https://api.openweathermap.org/data/2.5/";
 export const weatherApiKey = "cbf0e4beff2551b2ede306ca80ffde8b";
+export const weatherIconsURL = "https://openweathermap.org/img/wn/";
 
