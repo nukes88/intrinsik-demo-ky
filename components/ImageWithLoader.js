@@ -9,7 +9,7 @@ function ImageWithLoader(props) {
         <View>
             <Image
                 onLoadEnd={() => setLoading(false)}
-                style={loading ? styles.loading : props.style}
+                style={props.style}
                 source={{
                     uri: props.source
                 }}
